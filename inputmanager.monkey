@@ -1236,10 +1236,10 @@ Class ControllerDevice Extends InputDevice Final
 					Local TX:= JoyZ(0, ControllerID)
 					Local TY:= JoyZ(1, ControllerID)
 					
-					If (TX > 0.0) Then
+					If (TX > TY) Then
 						Triggers.X = TX
 						Triggers.Y = -TX
-					Elseif (TY > 0.0) Then
+					Elseif (TY > TX) Then
 						Triggers.X = -TY
 						Triggers.Y = TY
 					Else
