@@ -126,7 +126,7 @@ Public
 		I need to make the XNA target produce different information.
 	#End
 	
-	#INPUTMANAGER_XNA_FIX = True
+	#INPUTMANAGER_XNA_FIXES = True
 #End
 
 ' Imports (Standard):
@@ -1232,12 +1232,23 @@ Class ControllerDevice Extends InputDevice Final
 				SecondAnalog.X = JoyX(1, ControllerID)
 				SecondAnalog.Y = -JoyY(1, ControllerID)
 				
-				Triggers.X = JoyZ(0, ControllerID)
-				
-				#If Not INPUTMANAGER_XNA_FIX
-					Triggers.Y = JoyZ(1, ControllerID)
+				#If INPUTMANAGER_XNA_FIXES
+					Local TX:= JoyZ(0, ControllerID)
+					Local TY:= JoyZ(1, ControllerID)
+					
+					If (TX > 0.0) Then
+						Triggers.X = TX
+						Triggers.Y = -TX
+					Elseif (TY > 0.0) Then
+						Triggers.X = -TY
+						Triggers.Y = TY
+					Else
+						Triggers.X = 0.0
+						Triggers.Y = 0.0
+					Endif
 				#Else
-					Triggers.Y = -Triggers.X
+					Triggers.X = JoyZ(0, ControllerID)
+					Triggers.Y = JoyZ(1, ControllerID)
 				#End
 				
 				If (LeftTriggerLog.Length() >= MaximumTriggerLogSize) Then
