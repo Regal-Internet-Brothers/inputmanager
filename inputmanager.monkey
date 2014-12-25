@@ -1901,9 +1901,15 @@ Class InputButton Extends Vector2D<Float>
 	' Assuming a parent exists, this will execute
 	' this object's parent's 'RemoveButton' command.
 	' This command may prove unreliable under certain circumstances.
-	Method Unbind:Bool()
+	Method Unbind:Bool(ApplyToAtlases:Bool=True)
 		' Check if we have a parent to work with:
 		If (Parent <> Null) Then
+			If (ApplyToAtlases) Then
+				If (Not ClearAtlases(Parent)) Then
+					Return False
+				Endif
+			Endif
+			
 			Return Parent.RemoveButton(Self)
 		Endif
 		
