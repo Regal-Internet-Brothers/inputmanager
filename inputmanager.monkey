@@ -1897,7 +1897,19 @@ Class InputButton Extends Vector2D<Float>
 	End
 	
 	' Destructor(s):
-	' Nothing so far.
+	
+	' Assuming a parent exists, this will execute
+	' this object's parent's 'RemoveButton' command.
+	' This command may prove unreliable under certain circumstances.
+	Method Unbind:Bool()
+		' Check if we have a parent to work with:
+		If (Parent <> Null) Then
+			Return Parent.RemoveButton(Self)
+		Endif
+		
+		' Return the default response.
+		Return False
+	End
 	
 	' Methods:
 	
