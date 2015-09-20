@@ -129,7 +129,25 @@ Public
 	#INPUTMANAGER_XNA_FIXES = True
 #End
 
-' Imports (Standard):
+#If HOST = "winnt" And LANG = "cpp" And TARGET <> "win8"
+	#INPUTMANAGER_USE_XINPUT = True
+#End
+
+' Imports (Public):
+
+' Internal:
+Import external
+Import fallbacks
+
+' External:
+Import vector
+
+' Imports (Private):
+Private
+
+' External:
+Import util
+
 Import typetool
 
 ' Check if we're using a standard game-target:
@@ -144,15 +162,14 @@ Import typetool
 	Import mojoemulator.app
 #End
 
-Import util
-Import vector
+#If INPUTMANAGER_USE_XINPUT
+	Import xinput
+#End
 
-' This is for stream input/output, not for input-devices.
+' This is for stream I/O, not for input-devices.
 Import ioelement
 
-' Imports (Internal):
-Import external
-Import fallbacks
+Public
 
 ' Constant variable(s):
 
@@ -209,14 +226,18 @@ Class InputManager
 	Const DEVICE_CONTROLLER:= ControllerDevice.DEVICE_ID
 	
 	' Controller related:
-	#If INPUTMANAGER_MAX_CONTROLLERS And INPUTMANAGER_GLFW_TARGET
-		Const CONTROLLER_COUNT:UShort = 16
-	#Else
-		#If ANDROID_OUYA_BUILD Or INPUTMANAGER_GLFW_TARGET
-			Const CONTROLLER_COUNT:UShort = 4
+	#If Not INPUTMANAGER_USE_XINPUT
+		#If INPUTMANAGER_MAX_CONTROLLERS And INPUTMANAGER_GLFW_TARGET
+			Const CONTROLLER_COUNT:UShort = 16
 		#Else
-			Const CONTROLLER_COUNT:UShort = 1
+			#If ANDROID_OUYA_BUILD Or INPUTMANAGER_GLFW_TARGET
+				Const CONTROLLER_COUNT:UShort = 4
+			#Else
+				Const CONTROLLER_COUNT:UShort = 1
+			#End
 		#End
+	#Else
+		Const CONTROLLER_COUNT:UShort = 4 ' UShort(XUSER_MAX_COUNT)
 	#End
 	
 	Const CONTROLLER_PRIMARY:= ControllerDevice.CONTROLLER_PRIMARY
@@ -1176,17 +1197,101 @@ Class ControllerDevice Extends InputDevice Final
 	' Button / Key codes:
 	Const DEFAULT_ACTIVATION_BUTTON:= JOY_A
 	
-	' Functions:
+	' Global variable(s):
 	
-	' This is just a quick wrapper for the 'JoyPresent' command:
+	' XInput related:
+	#If INPUTMANAGER_USE_XINPUT
+		Global XInputDevices:XInputDevice[InputManager.CONTROLLER_COUNT] ' XUSER_MAX_COUNT
+	#End
+	
+	' Functions (Public):
 	Function HardwarePluggedIn:Bool(ControllerID:UShort)
-		Return JoyPresent(ControllerID)
+		#If Not INPUTMANAGER_USE_XINPUT
+			Return JoyPresent(ControllerID)
+		#Else
+			Return EnableXInputDevice(ControllerID)
+		#End
 	End
 	
 	' This is just a quick wrapper for the 'JoyCount' command:
 	Function HardwareCount:UShort()
 		Return JoyCount()
 	End
+	
+	' Functions (Private):
+	Private
+	
+	#If INPUTMANAGER_USE_XINPUT
+		Function EnableXInputDevice:Bool(ControllerID:UShort)
+			If (XInputDevice.DevicePluggedIn(ControllerID)) Then
+				Local Device:= GetXInputDevice(ControllerID)
+				
+				If (Device = Null) Then
+					XInputDevices[ControllerID] = New XInputDevice(ControllerID)
+				Endif
+				
+				Return True
+			Endif
+			
+			Return False
+		End
+		
+		Function GetXInputDevice:XInputDevice(ControllerID:UShort)
+			Return XInputDevices[ControllerID]
+		End
+		
+		Function JoyX:Float(Axis:Int=0, ControllerID:Int=0)
+			Local Device:= GetXInputDevice(ControllerID)
+			
+			If (Device = Null) Then
+				Return 0.0
+			Endif
+			
+			Return Device.JoyX(Axis)
+		End
+		
+		Function JoyY:Float(Axis:Int=0, ControllerID:Int=0)
+			Local Device:= GetXInputDevice(ControllerID)
+			
+			If (Device = Null) Then
+				Return 0.0
+			Endif
+			
+			Return Device.JoyY(Axis)
+		End
+		
+		Function JoyZ:Float(Axis:Int=0, ControllerID:Int=0)
+			Local Device:= GetXInputDevice(ControllerID)
+			
+			If (Device = Null) Then
+				Return 0.0
+			Endif
+			
+			Return Device.JoyZ(Axis)
+		End
+		
+		Function JoyHit:Int(MojoButton:Int, ControllerID:Int=0)
+			Local Device:= GetXInputDevice(ControllerID)
+			
+			If (Device = Null) Then
+				Return 0
+			Endif
+			
+			Return Device.JoyHit(MojoButton)
+		End
+		
+		Function JoyDown:Int(MojoButton:Int, ControllerID:Int=0)
+			Local Device:= GetXInputDevice(ControllerID)
+			
+			If (Device = Null) Then
+				Return 0
+			Endif
+			
+			Return Device.JoyDown(MojoButton)
+		End
+	#End
+	
+	Public
 	
 	' Constructor(s):
 	Method New(Parent:InputManager, ControllerID:UShort=CONTROLLER_PRIMARY, ActivationCallback:ControllerActivationCallback, ActivationStack:Stack<Int>=Null, MaximumTriggerLogSize:Int=Default_MaximumTriggerLogSize, TriggerUp_BeginThreshold:Float=Default_TriggerUp_BeginThreshold)
@@ -1204,6 +1309,10 @@ Class ControllerDevice Extends InputDevice Final
 		Self.TriggerUp_EndThreshold = 1.0-TriggerUp_BeginThreshold
 		
 		Self.MaximumTriggerLogSize = MaximumTriggerLogSize
+		
+		#If INPUTMANAGER_USE_XINPUT
+			EnableXInputDevice(ControllerID)
+		#End
 	End
 	
 	Method Construct:Void()
@@ -1224,6 +1333,16 @@ Class ControllerDevice Extends InputDevice Final
 		Super.Detect()
 		
 		#If INPUTMANAGER_ENABLED
+			#If INPUTMANAGER_USE_XINPUT
+				Local XInputGamepad:= GetXInputDevice(ControllerID)
+				
+				If (XInputGamepad = Null) Then
+					Return False
+				Endif
+				
+				XInputGamepad.Detect()
+			#End
+			
 			If (Activated) Then
 				' Analog detection (The Y axis is inverted for the sake of translation):
 				MainAnalog.X = JoyX(0, ControllerID)
@@ -2431,7 +2550,11 @@ End
 
 ' This function works similarly to BlitzBasic's implementation:
 Function JoyHat:Float(ControllerID:UShort=ControllerDevice.CONTROLLER_PRIMARY)
-	Return JoyHat(JoyDown(JOY_UP, ControllerID), JoyDown(JOY_DOWN, ControllerID), JoyDown(JOY_LEFT, ControllerID), JoyDown(JOY_RIGHT, ControllerID))
+	#If Not INPUTMANAGER_USE_XINPUT
+		Return JoyHat(JoyDown(JOY_UP, ControllerID), JoyDown(JOY_DOWN, ControllerID), JoyDown(JOY_LEFT, ControllerID), JoyDown(JOY_RIGHT, ControllerID))
+	#Else
+		Return JoyHat(ControllerDevice.GetXInputDevice(ControllerID))
+	#End
 End
 
 Function JoyHat:Float(Up:Int, Down:Int, Left:Int, Right:Int)
@@ -2510,6 +2633,21 @@ Function Joy_DPadDirection:Float(Left:Int, Right:Int)
 	Return 0.0
 End
 
+' XInput extensions:
+#If INPUTMANAGER_USE_XINPUT
+	Function JoyHat:Float(Device:XInputDevice)
+		Return JoyHat(Int(Device.ButtonDown(XINPUT_GAMEPAD_DPAD_UP)), Int(Device.ButtonDown(XINPUT_GAMEPAD_DPAD_DOWN)), Int(Device.ButtonDown(XINPUT_GAMEPAD_DPAD_LEFT)), Int(Device.ButtonDown(XINPUT_GAMEPAD_DPAD_RIGHT)))
+	End
+	
+	Function Joy_DPadX:Float(Device:XInputDevice)
+		Return Joy_DPadDirection(Int(Device.ButtonDown(XINPUT_GAMEPAD_DPAD_LEFT)), Int(Device.ButtonDown(XINPUT_GAMEPAD_DPAD_RIGHT)))
+	End
+	
+	Function Joy_DPadY:Float(Device:XInputDevice)
+		Return Joy_DPadDirection(Int(Device.ButtonDown(XINPUT_GAMEPAD_DPAD_DOWN)), Int(Device.ButtonDown(XINPUT_GAMEPAD_DPAD_UP)))
+	End
+#End
+
 #Rem
 	This command will accurately represent the number
 	of controllers plugged into the system.
@@ -2525,6 +2663,8 @@ End
 	
 	Unlike the software oriented solutions, this command
 	uses the platform's 'JoyPresent' implementation.
+	
+	Or, in the case of 'INPUTMANAGER_USE_XINPUT', 'XInputDevice.DevicePluggedIn'.
 #End
 
 Function JoyCount:Int(Controllers:Int=InputManager.CONTROLLER_COUNT, Offset:Int=InputManager.CONTROLLER_PRIMARY)
@@ -2532,7 +2672,11 @@ Function JoyCount:Int(Controllers:Int=InputManager.CONTROLLER_COUNT, Offset:Int=
 	Local Count:Int = 0
 	
 	For Local ControllerID:= Offset Until Controllers
+		#If Not INPUTMANAGER_USE_XINPUT
 			If (JoyPresent(ControllerID)) Then
+		#Else
+			If (XInputDevice.DevicePluggedIn(ControllerID)) Then
+		#End
 				Count += 1
 		#If INPUTMANAGER_CONTROLLERS_OPTIMIZE_AVAILABILITY_CHECK
 			Else
