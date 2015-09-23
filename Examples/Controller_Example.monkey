@@ -2,7 +2,9 @@ Strict
 
 Public
 
-#INPUTMANAGER_USE_XINPUT = True
+#If HOST = "winnt" And TARGET = "glfw" Or TARGET = "stdcpp"
+	#INPUTMANAGER_USE_XINPUT = True
+#End
 
 ' Imports:
 Import inputmanager
@@ -37,7 +39,7 @@ Class Application Extends App Final
 	Method OnUpdate:Int()
 		Input.Update()
 		
-		If (A.Pressed) Then
+		If (A.Down) Then
 			Print("A pressed.")
 		Endif
 		

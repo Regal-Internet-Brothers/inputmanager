@@ -51,6 +51,15 @@ Public
 	#End
 #End
 
+#If HOST = "winnt" And LANG = "cpp" And TARGET <> "win8"
+	#INPUTMANAGER_USE_XINPUT = True
+#End
+
+#If INPUTMANAGER_USE_XINPUT
+	#INPUTMANAGER_OPTIMIZE_MEMORY = False
+	#INPUTMANAGER_XNA_FIXES = False
+#End
+
 #Rem
 	When this is enabled, input-devices get data from the standard storage-agnostic commands.
 	And if this is disabled, in-line checking will be preferred.
@@ -129,10 +138,6 @@ Public
 	#INPUTMANAGER_XNA_FIXES = True
 #End
 
-#If HOST = "winnt" And LANG = "cpp" And TARGET <> "win8"
-	#INPUTMANAGER_USE_XINPUT = True
-#End
-
 ' Imports (Public):
 
 ' Internal:
@@ -141,6 +146,8 @@ Import fallbacks
 
 ' External:
 Import vector
+
+Import mojo.keycodes
 
 ' Imports (Private):
 Private
