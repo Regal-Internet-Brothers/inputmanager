@@ -7,10 +7,10 @@ Public
 #End
 
 ' Imports:
-Import inputmanager
+Import regal.inputmanager
 
 #If INPUTMANAGER_USE_XINPUT
-	Import xinput
+	Import regal.xinput
 #End
 
 Import mojo

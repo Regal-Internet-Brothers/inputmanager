@@ -6,7 +6,7 @@ Public
 ' Nothing so far.
 
 ' Imports:
-Import inputmanager
+Import inputmanager ' regal.inputmanager
 
 ' Check if 'JoyPresent' should be implemented:
 #If INPUT_GLFW_TARGET

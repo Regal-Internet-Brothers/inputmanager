@@ -145,7 +145,7 @@ Import external
 Import fallbacks
 
 ' External:
-Import vector
+Import regal.vector
 
 Import mojo.keycodes
 
@@ -153,9 +153,9 @@ Import mojo.keycodes
 Private
 
 ' External:
-Import util
+Import regal.util
 
-Import typetool
+Import regal.typetool
 
 ' Check if we're using a standard game-target:
 #If BRL_GAMETARGET_IMPLEMENTED
@@ -163,18 +163,18 @@ Import typetool
 	Import mojo.input
 	
 	' Standard 'autofit' functionality.
-	Import autofit
+	Import regal.autofit ' autofit
 #Else
 	' We're on a non-standard/non-game target, import 'mojoemulator'.
-	Import mojoemulator.app
+	Import regal.mojoemulator.app
 #End
 
 #If INPUTMANAGER_USE_XINPUT
-	Import xinput
+	Import regal.xinput
 #End
 
 ' This is for stream I/O, not for input-devices.
-Import ioelement
+Import regal.ioelement
 
 Public
 
